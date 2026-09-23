@@ -1,0 +1,1 @@
+export type Delivery={id:string;client:string;logo?:string|null;date:string;category:string;description:string;photo_url?:string|null;photo_unavailable?:boolean;expires_at?:string;confirmed_at:string|null;receiver_name:string|null;receiver_contact:string|null;receiver_role:string|null;notes:string|null;signature_data:string|null};
