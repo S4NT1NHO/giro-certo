@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./statement.css";
 
 export const metadata: Metadata = {
   title: "Giro Certo — Controle financeiro do motoboy",

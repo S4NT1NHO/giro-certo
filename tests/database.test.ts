@@ -21,6 +21,10 @@ test('Postgres: instalação, perfis, isolamento, restrições e fotos privadas'
  await db.exec(await readFile(new URL('../supabase/01-instalar.sql',import.meta.url),'utf8'));
  await db.exec(await readFile(new URL('../supabase/02-sessoes.sql',import.meta.url),'utf8'));
  await db.exec(await readFile(new URL('../supabase/02-sessoes.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../supabase/04-confirmacoes.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../supabase/04-confirmacoes.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../supabase/05-identidade.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../supabase/05-identidade.sql',import.meta.url),'utf8'));
  const a=crypto.randomUUID(),b=crypto.randomUUID(),client=crypto.randomUUID(),service=crypto.randomUUID();
  await db.query("insert into auth.users values($1,'a@example.test',$2,now()),($3,'b@example.test',$4,now())",[a,JSON.stringify({name:'A',username:'user.a',role:'admin',active:false}),b,JSON.stringify({name:'B',username:'user.b'})]);
  const profiles=await db.query<{role:string;active:boolean}>('select role,active from public.profiles');assert(profiles.rows.every(p=>p.role==='user'&&p.active),'metadata cannot promote or set permissions');
@@ -28,6 +32,8 @@ test('Postgres: instalação, perfis, isolamento, restrições e fotos privadas'
  const sign=async(id:string,issued=200,created=issued)=>{await db.exec('reset role');const sid=crypto.randomUUID();await db.query('insert into auth.sessions values($1,$2,to_timestamp($3))',[sid,id,created]);await db.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claims',$2,false)",[id,JSON.stringify({iat:issued,session_id:sid})]);await db.exec('set role authenticated');};
  await sign(a);
  await db.query('insert into public.clients(id,name) values($1,$2)',[client,'Meu cliente']);
+ await db.query('update public.clients set logo_data=$1 where id=$2',['data:image/png;base64,aGVsbG8=',client]);
+ await assert.rejects(db.query('update public.clients set logo_data=$1 where id=$2',['javascript:alert(1)',client]),/check constraint/);
  assert.equal((await db.query('select * from public.clients')).rows.length,1);
  assert.equal((await db.query('select * from public.profiles')).rows.length,1);
  await assert.rejects(db.query("update public.profiles set role='admin' where id=$1",[a]),/permission denied/);
@@ -36,7 +42,28 @@ test('Postgres: instalação, perfis, isolamento, restrições e fotos privadas'
  await assert.rejects(db.query('delete from public.clients where id=$1',[client]),/foreign key/);
  await db.query("insert into storage.objects(bucket_id,name) values('service-photos',$1)",[a+'/'+service+'/photo']);
  assert.equal((await db.query('select * from storage.objects')).rows.length,1);
+
+ const token='a'.repeat(64),replacement='b'.repeat(64);
+ await db.query('select public.giro_receipt_link($1,$2)',[service,token]);
+ await assert.rejects(db.query('select token_hash from public.service_receipts'),/permission denied/);
+ await db.query('select public.giro_receipt_link($1,$2)',[service,replacement]);
+ await db.exec('reset role; set role service_role');
+ assert.equal((await db.query<{r:unknown}>('select public.giro_receive($1) r',[token])).rows[0].r,null,'old link revoked');
+ const branding=(await db.query<{r:{client:string;logo:string}}>('select public.giro_receive($1) r',[replacement])).rows[0].r;assert.equal(branding.client,'Meu cliente');assert.equal(branding.logo,'data:image/png;base64,aGVsbG8=');
+ await db.exec('reset role');await db.query("update public.service_receipts set expires_at=now()-interval '1 second' where service_id=$1",[service]);
+ await db.exec('set role service_role');assert.equal((await db.query<{r:unknown}>('select public.giro_receive($1) r',[replacement])).rows[0].r,null,'expired link refused');
+ await sign(a);await db.query('select public.giro_receipt_link($1,$2)',[service,token]);
+ await db.query("update public.services set description='Atualizado' where id=$1",[service]);
+ await db.exec('reset role; set role service_role');assert.equal((await db.query<{r:unknown}>('select public.giro_receive($1) r',[token])).rows[0].r,null,'editing invalidates link');
+ await sign(a);await db.query('select public.giro_receipt_link($1,$2)',[service,replacement]);
+ await db.exec('reset role; set role service_role');
+ assert.deepEqual((await db.query<{r:unknown}>('select public.giro_receive($1,$2) r',[replacement,'Maria Recebedora'])).rows[0].r,{confirmed:true});
+ assert.equal((await db.query<{r:unknown}>('select public.giro_receive($1,$2) r',[replacement,'Outra Pessoa'])).rows[0].r,null,'single use');
+ await sign(a);await assert.rejects(db.query("update public.services set description='Alterado' where id=$1",[service]),/confirmado/);
+ await assert.rejects(db.query('select public.giro_receipt_link($1,$2)',[service,token]),/confirmado/);
  await sign(b);
+ assert.equal((await db.query('select service_id from public.service_receipts')).rows.length,0);
+ await assert.rejects(db.query('select public.giro_receipt_link($1,$2)',[service,token]),/encontrado/);
  assert.equal((await db.query('select * from public.clients')).rows.length,0);
  assert.equal((await db.query('select * from public.services')).rows.length,0);
  assert.equal((await db.query('select * from storage.objects')).rows.length,0);

@@ -11,8 +11,8 @@ export async function GET(){try{
   for(let start=0;;start+=500){const {data,error}=await db.from(table).select(columns).eq('owner',user).order(order,{ascending:table==='clients'}).order('id').range(start,start+499);checkDatabase(error);result.push(...(data??[]) as unknown as Record<string,unknown>[]);if((data?.length??0)<500)break;}
   return result;
  }
- const [clients,services,expenses]=await Promise.all([all('clients','id,name,phone,address,notes','name'),all('services','id,client_id,date,category,description,amount,photo_key','date'),all('expenses','id,date,category,description,amount','date')]);
- return Response.json({clients,services:services.map(({photo_key,...row})=>({...row,has_photo:!!photo_key})),expenses},{headers:{'Cache-Control':'private, no-store'}});
+ const [clients,services,expenses]=await Promise.all([all('clients','id,name,phone,address,notes,logo_data','name'),all('services','id,client_id,date,category,description,amount,photo_key,service_receipts(service_id,expires_at,confirmed_at,receiver_name,receiver_contact,receiver_role,notes)','date'),all('expenses','id,date,category,description,amount','date')]);
+ return Response.json({clients,services:services.map(({photo_key,service_receipts,...row})=>({...row,has_photo:!!photo_key,receipt:service_receipts})),expenses},{headers:{'Cache-Control':'private, no-store'}});
 }catch(error){return failure(error);}}
 export async function POST(request:Request){try{
  const user=await owner(request);const input=z.object({kind:z.enum(['client','expense'])}).passthrough().parse(await jsonBody(request));
