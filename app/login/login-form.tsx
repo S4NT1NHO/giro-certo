@@ -22,19 +22,19 @@ export default function LoginForm(){
   <div className="auth-shell">
    <section className="auth-pitch" aria-label="Giro Certo, controle financeiro do motoboy">
     <div className="login-brand"><span className="brand-icon"><Motorbike size={30}/></span><span>giro <b>certo</b><small>CONTROLE FINANCEIRO DO MOTOBOY</small></span></div>
-    <span className="pitch-tag"><span/> MAIS CONTROLE EM CADA CORRIDA</span>
+    <span className="pitch-tag"><span/> FEITO PARA QUEM ESTÁ NA RUA</span>
     <h1>Seu corre. <br/>Seu dinheiro. <br/><em>Tudo na conta.</em></h1>
     <p className="pitch-description">Saiba quanto entrou, quanto a moto custou e quanto sobrou no seu mês. Seu trabalho merece esse controle.</p>
     <div className="finance-preview" aria-label="Exemplo de resumo financeiro">
      <div className="preview-heading"><span>Seu mês em números</span><small>EXEMPLO</small></div>
-     <div className="preview-values"><div><span><TrendingUp size={16}/>Recebido</span><strong>R$ 2.480<span>,00</span></strong></div><div><span><Fuel size={16}/>Gastos</span><strong>R$ 760<span>,00</span></strong></div></div>
+     <div className="preview-values"><div><span><TrendingUp size={16}/>Serviços</span><strong>R$ 2.480<span>,00</span></strong></div><div><span><Fuel size={16}/>Gastos</span><strong>R$ 760<span>,00</span></strong></div></div>
      <div className="preview-balance"><div><span>Saldo do mês</span><strong>R$ 1.720,00</strong></div><span className="balance-icon"><Wallet size={24}/></span></div>
     </div>
     <div className="pitch-benefits"><span><Check size={16}/>Serviços e clientes</span><span><Check size={16}/>Combustível e manutenção</span><span><Check size={16}/>Resumo mensal</span></div>
    </section>
    <section className="login-card">
     <div className="auth-tabs" aria-label="Acesso à conta"><button type="button" className={!register?"selected":""} aria-pressed={!register} disabled={busy} onClick={()=>changeMode(false)}>Entrar</button><button type="button" className={register?"selected":""} aria-pressed={register} disabled={busy} onClick={()=>changeMode(true)}>Criar conta</button></div>
-    <span className="login-label">{register?"COMECE A ORGANIZAR SEU CORRE":"BOM TE VER POR AQUI"}</span>
+    <span className="login-label">{register?"COMECE A ORGANIZAR SEU CORRE":"SEU ESPAÇO DE TRABALHO"}</span>
     <h2>{register?"Crie sua conta":"Entre no Giro Certo"}</h2>
     <p>{register?"Escolha seu usuário e sua senha para começar.":"Acesse seu controle financeiro e acompanhe os resultados do seu trabalho."}</p>
     {notice&&<p role="status" className="auth-notice">{notice}</p>}
